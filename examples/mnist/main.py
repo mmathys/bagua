@@ -252,6 +252,10 @@ def main():
         algorithm = async_model_average.AsyncModelAverageAlgorithm(
             sync_interval_ms=args.async_sync_interval,
         )
+    elif args.algorithm == "custom":
+        from custom import CustomAlgorithm
+
+        algorithm = CustomAlgorithm()
     else:
         raise NotImplementedError
 

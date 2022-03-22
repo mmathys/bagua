@@ -6,7 +6,7 @@ from bagua.torch_api.algorithms.base import Algorithm, AlgorithmImpl
 from bagua.torch_api.communication import BaguaProcessGroup
 
 
-class GradientAllReduceAlgorithmImpl(AlgorithmImpl):
+class CustomAlgorithmImpl(AlgorithmImpl):
     def __init__(
         self,
         process_group: BaguaProcessGroup,
@@ -24,7 +24,7 @@ class GradientAllReduceAlgorithmImpl(AlgorithmImpl):
             average (bool): If ``True``, the gradients on each worker are averaged.
                 Otherwise, they are summed.
         """
-        super(GradientAllReduceAlgorithmImpl, self).__init__(process_group)
+        super(CustomAlgorithmImpl, self).__init__(process_group)
         self.hierarchical = hierarchical
         self.average = average
 
@@ -41,7 +41,7 @@ class GradientAllReduceAlgorithmImpl(AlgorithmImpl):
         )
 
 
-class GradientAllReduceAlgorithm(Algorithm):
+class CustomAlgorithm(Algorithm):
     def __init__(self, hierarchical: bool = False, average: bool = True):
         """
         Create an instance of the
@@ -56,8 +56,8 @@ class GradientAllReduceAlgorithm(Algorithm):
         self.hierarchical = hierarchical
         self.average = average
 
-    def reify(self, process_group: BaguaProcessGroup) -> GradientAllReduceAlgorithmImpl:
-        return GradientAllReduceAlgorithmImpl(
+    def reify(self, process_group: BaguaProcessGroup) -> CustomAlgorithmImpl:
+        return CustomAlgorithmImpl(
             process_group,
             hierarchical=self.hierarchical,
             average=self.average,
