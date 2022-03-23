@@ -34,11 +34,24 @@ class CustomAlgorithmImpl(AlgorithmImpl):
         bucket: BaguaBucket,
     ):
         bucket.clear_ops()
+
+        def before_op(*args):
+            print(f"before, shape: {len(bucket.tensors)}")
+            breakpoint()
+            pass
+
+        def after_op(*args):
+            print(f"after, shape: {len(bucket.tensors)}")
+            breakpoint()
+            pass
+
+        bucket.append_python_op(before_op)
         bucket.append_centralized_synchronous_op(
             hierarchical=self.hierarchical,
             average=self.average,
             group=self.process_group,
         )
+        bucket.append_python_op(after_op)
 
 
 class CustomAlgorithm(Algorithm):

@@ -221,6 +221,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = Net().cuda()
+    #breakpoint()
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     if args.algorithm == "gradient_allreduce":
@@ -258,6 +259,7 @@ def main():
         algorithm = CustomAlgorithm()
     else:
         raise NotImplementedError
+
 
     model = model.with_bagua(
         [optimizer],
