@@ -84,21 +84,22 @@ class AlgorithmImpl:
             A list of Bagua tensors for communication.
         """
 
-        parameters = bagua_ddp.bagua_build_params()
+        #parameters = bagua_ddp.bagua_build_params()
         tensors = []
-        for name, param in parameters.__reversed__():
-            param = param.bagua_ensure_grad().ensure_bagua_tensor(
-                name,
-                bagua_ddp.bagua_module_name,
-                getter_closure=lambda param: param.grad,
-                setter_closure=lambda param, t: setattr(param, "grad", t),
-            )
-            tensors.append(param)
+        #for name, param in parameters.__reversed__():
+        #    param = param.bagua_ensure_grad().ensure_bagua_tensor(
+        #        name,
+        #        bagua_ddp.bagua_module_name,
+        #        getter_closure=lambda param: param.grad,
+        #        setter_closure=lambda param, t: setattr(param, "grad", t),
+        #    )
+        #    tensors.append(param)
 
-        self._communication_tensor_names = set(name for name, _ in parameters)
-        assert len(self._communication_tensor_names) == len(
-            tensors
-        ), "tensor names should be unique"
+        #self._communication_tensor_names = set(name for name, _ in parameters)
+        #assert len(self._communication_tensor_names) == len(
+        #    tensors
+        #), "tensor names should be unique"
+
         return tensors
 
     def tensors_to_buckets(
