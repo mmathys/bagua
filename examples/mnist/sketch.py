@@ -4,6 +4,7 @@ from bagua.torch_api.bucket import BaguaBucket
 from bagua.torch_api.data_parallel.bagua_distributed import BaguaDistributedDataParallel
 from bagua.torch_api.algorithms.base import Algorithm, AlgorithmImpl
 from bagua.torch_api.communication import BaguaProcessGroup
+from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn as nn
 from csvec import CSVec
@@ -51,10 +52,12 @@ class SketchAlgorithmImpl(AlgorithmImpl):
     def __init__(
         self,
         process_group: BaguaProcessGroup,
+        optimizer: Optimizer,
         hierarchical: bool = False,
         average: bool = True,
     ):
         super(SketchAlgorithmImpl, self).__init__(process_group)
+        self.optimizer = optimizer
         self.hierarchical = hierarchical
         self.average = average
 
@@ -78,6 +81,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
                 self.state = SketchState(grad_shape=grad_shape, device=device)
 
             encoded_tensor = self.state.encode(bucket.flattened_tensor())
+            params = self.optimizer.param_groups[0]["params"]
             breakpoint()
             bucket.tensors = bucket.tensors[:1]
             bucket.tensors[0].sketch = encoded_tensor
@@ -106,13 +110,15 @@ class SketchAlgorithmImpl(AlgorithmImpl):
 
 
 class SketchAlgorithm(Algorithm):
-    def __init__(self, hierarchical: bool = False, average: bool = True):
+    def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = True):
+        self.optimizer = optimizer
         self.hierarchical = hierarchical
         self.average = average
 
     def reify(self, process_group: BaguaProcessGroup) -> SketchAlgorithmImpl:
         return SketchAlgorithmImpl(
             process_group,
+            self.optimizer,
             hierarchical=self.hierarchical,
             average=self.average,
         )

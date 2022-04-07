@@ -256,7 +256,7 @@ def main():
     elif args.algorithm == "sketch":
         from sketch import SketchAlgorithm
 
-        algorithm = SketchAlgorithm()
+        algorithm = SketchAlgorithm(optimizer)
     else:
         raise NotImplementedError
 
