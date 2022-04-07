@@ -32,6 +32,7 @@ class SketchState:
         self.sketch = CSVec(d=grad_shape, c=c, r=r, device=device)
         self.k = k
 
+    # creates the flattened gradient vector for later encoding in a sketch.
     def _flattened_gradient(self):
         params = self.optimizer.param_groups[0]["params"]
         flattened = []
@@ -40,9 +41,11 @@ class SketchState:
                 assert hasattr(p, "grad"), "gradient must be defined on param (missing backprop?)"
                 flattened.append(p.grad.reshape((-1,)))
         res = torch.cat(flattened)
-        assert len(res) == self.grad_shape
+        
+        assert len(res) == self.grad_shape, "gradient size mismatch"
         return res 
 
+    # encodes gradient vector into sketch
     def encode(self):
         self.u.mul_(self.momentum)
 
@@ -53,18 +56,21 @@ class SketchState:
 
         self.sketch.zero()
         self.sketch.accumulateVec(self.v)
+
         return self.sketch.table.clone() 
 
+    # decodes sketch into gradient vector, then applies it to model.
     def decode(self, sketch_table):
         self.sketch.zero()
         self.sketch.table = sketch_table
+
+        # unsketch payload
         gradient = self.sketch.unSketch(k=self.k)
         self.u[gradient.nonzero()] = 0
         self.v[gradient.nonzero()] = 0
 
-        # apply gradient to optimizer
+        # set .grad fields with unsketched gradient vector.
         i = 0
-        
         for p in self.optimizer.param_groups[0]["params"]:
             if p.requires_grad:
                 assert hasattr(p, "grad"), "gradient field must exist on param"
@@ -90,16 +96,19 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         self, bagua_ddp: BaguaDistributedDataParallel
     ) -> List[BaguaTensor]:
         parameters = bagua_ddp.bagua_build_params()
+        
         tensors = []
+        
         name, param = parameters[-1]
-        param.newgrad = torch.zeros((10, 10), device=param.device)
+        param.sketch = torch.zeros((10, 10), device=param.device)
         param.stepid = 0
         registered_tensor = param.bagua_ensure_grad().ensure_bagua_tensor(
             name,
             bagua_ddp.bagua_module_name,
-            getter_closure=lambda param: param.newgrad,
-            setter_closure=lambda param, t: setattr(param, "newgrad", t),
+            getter_closure=lambda param: param.sketch,
+            setter_closure=lambda param, t: setattr(param, "sketch", t),
         )
+        
         tensors.append(registered_tensor)
         
         self._communication_tensor_names = set((parameters[-1][0],))
@@ -153,7 +162,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
             print("----log batch_idx {} in {}: grad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self.optimizer.param_groups[0]["params"][-1].grad[0:10]))
             for tensor in self.optimizer.param_groups[0]["params"]:
                 if tensor.is_bagua_tensor():
-                    print("----log batch_idx {} in {}: newgrad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, tensor.newgrad))
+                    print("----log batch_idx {} in {}: sketch---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, tensor.sketch))
 
         def sketch(*args):
             if self.state is None:
@@ -182,47 +191,6 @@ class SketchAlgorithmImpl(AlgorithmImpl):
             group=self.process_group,
         )
         bucket.append_python_op(unsketch)
-
-        # TODO: init and use getter (and setter?) closures for sketch attribute.
-        # doublecheck with flattened_tensor property
-        """
-        def before_op(*args):
-            # get shape of bucket
-            breakpoint()
-            if self.state is None:
-                grad_shape = bucket.flattened_tensor().size()[0]
-                device = bucket.tensors[0].device.type
-                self.state = SketchState(grad_shape=grad_shape, device=device)
-
-            encoded_tensor = self.state.encode(bucket.flattened_tensor())
-            params = self.optimizer.param_groups[0]["params"]
-            breakpoint()
-            bucket.tensors = bucket.tensors[:1]
-            bucket.tensors[0].sketch = encoded_tensor
-
-            # Q: bucket.flattened_tensor() still has the same size!
-
-            print(f"before, shape: {len(bucket.tensors)}")
-            breakpoint()
-            pass
-
-        def after_op(*args):
-            print(f"after, shape: {len(bucket.tensors)}")
-            assert len(bucket.tensors) == 1, "bucket length should be 1"
-            decoded_tensor = self.state.decode(bucket.tensors[0].sketch)
-            # Q: how decode original gradients?
-            breakpoint()
-            pass
-
-        bucket.append_python_op(before_op)
-        bucket.append_centralized_synchronous_op(
-            hierarchical=self.hierarchical,
-            average=self.average,
-            group=self.process_group,
-        )
-        bucket.append_python_op(after_op)
-        """
-
 
 class SketchAlgorithm(Algorithm):
     def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = True):
