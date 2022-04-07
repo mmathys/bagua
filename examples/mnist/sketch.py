@@ -21,8 +21,10 @@ class SketchState:
         grad_shape = 0
         for p in params:
             if p.requires_grad:
-                grad_shape += torch.numel(p)
+                grad_shape += p.numel()
 
+        self.grad_shape = grad_shape
+        self.optimizer = optimizer
         self.device = device
         self.u = torch.zeros(grad_shape, device=device)
         self.v = torch.zeros(grad_shape, device=device)
@@ -30,8 +32,21 @@ class SketchState:
         self.sketch = CSVec(d=grad_shape, c=c, r=r, device=device)
         self.k = k
 
-    def encode(self, gradient):
+    def _flattened_gradient(self):
+        params = self.optimizer.param_groups[0]["params"]
+        flattened = []
+        for p in params:
+            if p.requires_grad:
+                assert hasattr(p, "grad"), "gradient must be defined on param (missing backprop?)"
+                flattened.append(p.grad.reshape((-1,)))
+        res = torch.cat(flattened)
+        assert len(res) == self.grad_shape
+        return res 
+
+    def encode(self):
         self.u.mul_(self.momentum)
+
+        gradient = self._flattened_gradient()
         self.u.add_(gradient)
 
         self.v.add_(self.u)
@@ -47,7 +62,16 @@ class SketchState:
         self.u[gradient.nonzero()] = 0
         self.v[gradient.nonzero()] = 0
 
-        return gradient
+        # apply gradient to optimizer
+        i = 0
+        
+        for p in self.optimizer.param_groups[0]["params"]:
+            if p.requires_grad:
+                assert hasattr(p, "grad"), "gradient field must exist on param"
+                p.grad.set_(gradient[i:i+p.numel()].reshape(p.shape))
+                i += p.numel()
+        
+        assert i == self.grad_shape, "gradient size mismatch"
 
 class SketchAlgorithmImpl(AlgorithmImpl):
     def __init__(
@@ -68,7 +92,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         parameters = bagua_ddp.bagua_build_params()
         tensors = []
         name, param = parameters[-1]
-        param.newgrad = torch.zeros((2, 2), device=param.device)
+        param.newgrad = torch.zeros((10, 10), device=param.device)
         param.stepid = 0
         registered_tensor = param.bagua_ensure_grad().ensure_bagua_tensor(
             name,
@@ -133,14 +157,21 @@ class SketchAlgorithmImpl(AlgorithmImpl):
 
         def sketch(*args):
             if self.state is None:
-                breakpoint()
                 device = bucket.tensors[0].device.type
                 self.state = SketchState(self.optimizer, device=device)
 
-            for tensor in bucket.tensors:
-                if tensor.is_bagua_tensor():
-                    t = torch.randn((12), device=tensor.grad.device)
-                    tensor.bagua_setter_closure(t)
+            encoded_tensor = self.state.encode()
+
+            assert len(bucket.tensors) == 1, "bucket must only contain a single sketch"
+            assert bucket.tensors[0].is_bagua_tensor(), "must be bagua tensor"
+            bucket.tensors[0].bagua_setter_closure(encoded_tensor) 
+
+        def unsketch(*args):
+            assert len(bucket.tensors) == 1, "bucket must only contain a single sketch"
+            assert bucket.tensors[0].is_bagua_tensor(), "must be bagua tensor"
+
+            sketch = bucket.tensors[0].bagua_getter_closure().detach()
+            self.state.decode(sketch)
 
         bucket.append_python_op(log, group=self.process_group)
         bucket.append_python_op(sketch, group=self.process_group)
@@ -150,6 +181,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
             average=self.average,
             group=self.process_group,
         )
+        bucket.append_python_op(unsketch)
 
         # TODO: init and use getter (and setter?) closures for sketch attribute.
         # doublecheck with flattened_tensor property
