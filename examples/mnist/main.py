@@ -276,6 +276,7 @@ def main():
             model.bagua_algorithm.resume(model)
 
         train(args, model, train_loader, optimizer, epoch)
+        
 
         if args.algorithm == "async":
             model.bagua_algorithm.abort(model)

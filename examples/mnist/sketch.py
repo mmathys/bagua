@@ -8,19 +8,20 @@ from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn as nn
 from csvec import CSVec
+from typing import List, Tuple
+from bagua.torch_api.tensor import BaguaTensor
 
 
 # Implements SketchSGD encoding and decoding. This is can be used for the stateful
 # hook.
 class SketchState:
-    def __init__(self, model=None, grad_shape=None, device=None, c=10, r=10, k=50, momentum=1.0):
-        assert (model is None) ^ (grad_shape is None), "either model or grad_shape must be defined"
+    def __init__(self, optimizer: Optimizer, device=None, c=10, r=10, k=50, momentum=1.0):
+        params = optimizer.param_groups[0]["params"]
         
-        if model is not None:
-            grad_shape = 0
-            for p in model.parameters():
-                if p.requires_grad:
-                    grad_shape += torch.numel(p)
+        grad_shape = 0
+        for p in params:
+            if p.requires_grad:
+                grad_shape += torch.numel(p)
 
         self.device = device
         self.u = torch.zeros(grad_shape, device=device)
@@ -61,6 +62,60 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         self.hierarchical = hierarchical
         self.average = average
 
+    def init_tensors(
+        self, bagua_ddp: BaguaDistributedDataParallel
+    ) -> List[BaguaTensor]:
+        parameters = bagua_ddp.bagua_build_params()
+        tensors = []
+        name, param = parameters[-1]
+        param.newgrad = torch.zeros((2, 2), device=param.device)
+        param.stepid = 0
+        registered_tensor = param.bagua_ensure_grad().ensure_bagua_tensor(
+            name,
+            bagua_ddp.bagua_module_name,
+            getter_closure=lambda param: param.newgrad,
+            setter_closure=lambda param, t: setattr(param, "newgrad", t),
+        )
+        tensors.append(registered_tensor)
+        
+        self._communication_tensor_names = set((parameters[-1][0],))
+        print("----SketchAlgorithmImpl init_tensors batch_idx {} in rank: {}, _communication_tensor_names: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self._communication_tensor_names))
+        assert len(self._communication_tensor_names) == len(
+            tensors
+        ), "tensor names should be unique"
+        return tensors
+
+    # Q: what does that do? *it's required*
+    def init_backward_hook(self, bagua_ddp: BaguaDistributedDataParallel):
+        def hook(parameter_name, parameter):
+            if parameter_name in self._communication_tensor_names:
+                parameter.bagua_mark_communication_ready()
+
+        return hook
+
+    # Q: what does that do? *it's NOT required*
+    def init_post_backward_hook(self, bagua_ddp: BaguaDistributedDataParallel):
+        def hook():
+            bagua_ddp._bagua_backend.wait_pending_comm_ops()
+            self.optimizer.param_groups[0]["params"][-1].stepid += 1
+
+        return hook
+
+    def tensors_to_buckets(
+        self, tensors: List[List[BaguaTensor]], do_flatten: bool
+    ) -> List[BaguaBucket]:
+        print("----SketchAlgorithmImpl tensors_to_buckets batch_idx {} in rank: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device))
+        bagua_buckets = []
+        for idx, bucket in enumerate(tensors):
+            bagua_bucket = BaguaBucket(
+                bucket,
+                flatten=do_flatten,
+                name=str(idx),
+                alignment=self.process_group.get_global_communicator().nranks(),
+            )
+            bagua_buckets.append(bagua_bucket)
+        return bagua_buckets
+
     def init_operations(
         self,
         _: BaguaDistributedDataParallel,
@@ -70,11 +125,38 @@ class SketchAlgorithmImpl(AlgorithmImpl):
 
         self.state = None
 
+        def log(*args):
+            print("----log batch_idx {} in {}: grad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self.optimizer.param_groups[0]["params"][-1].grad[0:10]))
+            for tensor in self.optimizer.param_groups[0]["params"]:
+                if tensor.is_bagua_tensor():
+                    print("----log batch_idx {} in {}: newgrad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, tensor.newgrad))
+
+        def sketch(*args):
+            if self.state is None:
+                breakpoint()
+                device = bucket.tensors[0].device.type
+                self.state = SketchState(self.optimizer, device=device)
+
+            for tensor in bucket.tensors:
+                if tensor.is_bagua_tensor():
+                    t = torch.randn((12), device=tensor.grad.device)
+                    tensor.bagua_setter_closure(t)
+
+        bucket.append_python_op(log, group=self.process_group)
+        bucket.append_python_op(sketch, group=self.process_group)
+        bucket.append_python_op(log, group=self.process_group)
+        bucket.append_centralized_synchronous_op(
+            hierarchical=self.hierarchical,
+            average=self.average,
+            group=self.process_group,
+        )
+
         # TODO: init and use getter (and setter?) closures for sketch attribute.
         # doublecheck with flattened_tensor property
-
+        """
         def before_op(*args):
             # get shape of bucket
+            breakpoint()
             if self.state is None:
                 grad_shape = bucket.flattened_tensor().size()[0]
                 device = bucket.tensors[0].device.type
@@ -107,6 +189,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
             group=self.process_group,
         )
         bucket.append_python_op(after_op)
+        """
 
 
 class SketchAlgorithm(Algorithm):
