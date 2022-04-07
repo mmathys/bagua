@@ -12,6 +12,7 @@ from typing import List, Tuple
 from bagua.torch_api.tensor import BaguaTensor
 
 DEBUG = False
+USE_SKETCH = False
 
 # Implements SketchSGD encoding and decoding. This is can be used for the stateful
 # hook.
@@ -60,6 +61,17 @@ class SketchState:
 
         return self.sketch.table.clone() 
 
+    def _apply_gradient(self, gradient):
+        # set .grad fields with unsketched gradient vector.
+        i = 0
+        for p in self.optimizer.param_groups[0]["params"]:
+            if p.requires_grad:
+                assert hasattr(p, "grad"), "gradient field must exist on param"
+                p.grad.set_(gradient[i:i+p.numel()].reshape(p.shape))
+                i += p.numel()
+        
+        assert i == self.grad_shape, "gradient size mismatch"
+
     # decodes sketch into gradient vector, then applies it to model.
     def decode(self, sketch_table):
         self.sketch.zero()
@@ -70,15 +82,7 @@ class SketchState:
         self.u[gradient.nonzero()] = 0
         self.v[gradient.nonzero()] = 0
 
-        # set .grad fields with unsketched gradient vector.
-        i = 0
-        for p in self.optimizer.param_groups[0]["params"]:
-            if p.requires_grad:
-                assert hasattr(p, "grad"), "gradient field must exist on param"
-                p.grad.set_(gradient[i:i+p.numel()].reshape(p.shape))
-                i += p.numel()
-        
-        assert i == self.grad_shape, "gradient size mismatch"
+        self._apply_gradient(gradient)
 
 class SketchAlgorithmImpl(AlgorithmImpl):
     def __init__(
@@ -98,6 +102,8 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         self.c = c
         self.r = r
         self.k = k
+        device = self.optimizer.param_groups[0]["params"][0].device
+        self.state = SketchState(optimizer, device=device, c=self.c, r=self.r, k = self.k)
 
     def init_tensors(
         self, bagua_ddp: BaguaDistributedDataParallel
@@ -107,7 +113,11 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         tensors = []
         
         name, param = parameters[-1]
-        param.sketch = torch.zeros((self.c, self.r), device=param.device)
+        if USE_SKETCH:
+            param.sketch = torch.zeros((self.c, self.r), device=param.device)
+        else:
+            param.sketch = torch.zeros((self.state.grad_shape), device=param.device)
+        
         param.stepid = 0
         registered_tensor = param.bagua_ensure_grad().ensure_bagua_tensor(
             name,
@@ -165,8 +175,6 @@ class SketchAlgorithmImpl(AlgorithmImpl):
     ):
         bucket.clear_ops()
 
-        self.state = None
-
         def log(*args):
             if not DEBUG: return
             print("----log batch_idx {} in {}: grad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self.optimizer.param_groups[0]["params"][-1].grad[0:10]))
@@ -175,11 +183,10 @@ class SketchAlgorithmImpl(AlgorithmImpl):
                     print("----log batch_idx {} in {}: sketch---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, tensor.sketch))
 
         def sketch(*args):
-            if self.state is None:
-                device = bucket.tensors[0].device.type
-                self.state = SketchState(self.optimizer, device=device, c=self.c, r=self.r, k = self.k)
-
-            encoded_tensor = self.state.encode()
+            if USE_SKETCH:
+                encoded_tensor = self.state.encode()
+            else:
+                encoded_tensor = self.state._flattened_gradient()
 
             assert len(bucket.tensors) == 1, "bucket must only contain a single sketch"
             assert bucket.tensors[0].is_bagua_tensor(), "must be bagua tensor"
@@ -189,8 +196,11 @@ class SketchAlgorithmImpl(AlgorithmImpl):
             assert len(bucket.tensors) == 1, "bucket must only contain a single sketch"
             assert bucket.tensors[0].is_bagua_tensor(), "must be bagua tensor"
 
-            sketch = bucket.tensors[0].bagua_getter_closure().detach()
-            self.state.decode(sketch)
+            encoded_tensor = bucket.tensors[0].bagua_getter_closure().detach()
+            if USE_SKETCH:
+                self.state.decode(encoded_tensor)
+            else:
+                self.state._apply_gradient(encoded_tensor)
 
         bucket.append_python_op(log, group=self.process_group)
         bucket.append_python_op(sketch, group=self.process_group)
