@@ -11,6 +11,7 @@ from csvec import CSVec
 from typing import List, Tuple
 from bagua.torch_api.tensor import BaguaTensor
 
+DEBUG = False
 
 # Implements SketchSGD encoding and decoding. This is can be used for the stateful
 # hook.
@@ -86,11 +87,17 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         optimizer: Optimizer,
         hierarchical: bool = False,
         average: bool = True,
+        c=10,
+        r=10,
+        k=50,
     ):
         super(SketchAlgorithmImpl, self).__init__(process_group)
         self.optimizer = optimizer
         self.hierarchical = hierarchical
         self.average = average
+        self.c = c
+        self.r = r
+        self.k = k
 
     def init_tensors(
         self, bagua_ddp: BaguaDistributedDataParallel
@@ -100,7 +107,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         tensors = []
         
         name, param = parameters[-1]
-        param.sketch = torch.zeros((10, 10), device=param.device)
+        param.sketch = torch.zeros((self.c, self.r), device=param.device)
         param.stepid = 0
         registered_tensor = param.bagua_ensure_grad().ensure_bagua_tensor(
             name,
@@ -112,7 +119,8 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         tensors.append(registered_tensor)
         
         self._communication_tensor_names = set((parameters[-1][0],))
-        print("----SketchAlgorithmImpl init_tensors batch_idx {} in rank: {}, _communication_tensor_names: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self._communication_tensor_names))
+        if DEBUG:
+            print("----SketchAlgorithmImpl init_tensors batch_idx {} in rank: {}, _communication_tensor_names: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self._communication_tensor_names))
         assert len(self._communication_tensor_names) == len(
             tensors
         ), "tensor names should be unique"
@@ -137,7 +145,8 @@ class SketchAlgorithmImpl(AlgorithmImpl):
     def tensors_to_buckets(
         self, tensors: List[List[BaguaTensor]], do_flatten: bool
     ) -> List[BaguaBucket]:
-        print("----SketchAlgorithmImpl tensors_to_buckets batch_idx {} in rank: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device))
+        if DEBUG:
+            print("----SketchAlgorithmImpl tensors_to_buckets batch_idx {} in rank: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device))
         bagua_buckets = []
         for idx, bucket in enumerate(tensors):
             bagua_bucket = BaguaBucket(
@@ -159,6 +168,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         self.state = None
 
         def log(*args):
+            if not DEBUG: return
             print("----log batch_idx {} in {}: grad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self.optimizer.param_groups[0]["params"][-1].grad[0:10]))
             for tensor in self.optimizer.param_groups[0]["params"]:
                 if tensor.is_bagua_tensor():
@@ -167,7 +177,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         def sketch(*args):
             if self.state is None:
                 device = bucket.tensors[0].device.type
-                self.state = SketchState(self.optimizer, device=device)
+                self.state = SketchState(self.optimizer, device=device, c=self.c, r=self.r, k = self.k)
 
             encoded_tensor = self.state.encode()
 
