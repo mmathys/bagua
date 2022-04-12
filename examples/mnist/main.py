@@ -259,6 +259,7 @@ def main():
     elif args.algorithm == "sketch":
         from sketch import SketchAlgorithm
 
+        optimizer = optim.SGD(model.parameters(), lr=1)
         algorithm = SketchAlgorithm(optimizer)
     else:
         raise NotImplementedError

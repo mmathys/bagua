@@ -137,9 +137,9 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         optimizer: Optimizer,
         hierarchical: bool = False,
         average: bool = True,
-        c=10,
-        r=10,
-        k=50,
+        c=60,
+        r=5,
+        k=60,
     ):
         super(SketchAlgorithmImpl, self).__init__(process_group)
         self.optimizer = optimizer

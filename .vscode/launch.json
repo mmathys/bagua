@@ -18,6 +18,19 @@
                 "--algorithm",
                 "sketch"
             ],
+        },
+        {
+            "name": "simple example",
+            "type": "python",
+            "request": "launch",
+            "module": "bagua.distributed.launch",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/examples/mnist",
+            "console": "integratedTerminal",
+            "args": [
+                "--nproc_per_node=1",
+                "main-simple.py"
+            ],
         }
     ]
 }
