@@ -12,27 +12,53 @@ from typing import List, Tuple
 from bagua.torch_api.tensor import BaguaTensor
 
 DEBUG = False
-USE_SKETCH = False
+USE_SKETCH = True
 
 # Implements SketchSGD encoding and decoding. This is can be used for the stateful
 # hook.
 class SketchState:
-    def __init__(self, optimizer: Optimizer, device=None, c=10, r=10, k=50, momentum=1.0):
+    def __init__(self, optimizer: Optimizer, device=None, c=60, r=5, k=60, momentum=0.0, lr=0.01, sketchParamsLargerThan=0):
         params = optimizer.param_groups[0]["params"]
+        for p in params:
+            if not hasattr(p, "do_sketching"):
+                p.do_sketching = p.numel() >= sketchParamsLargerThan
         
-        grad_shape = 0
+        # for m in model.modules():
+        #     if hasattr(m, "bias") and m.bias is not None:
+        #         m.bias.do_sketching = sketchBiases
+        
+        grad_shape = 0 # size of the gradient
+        sketch_shape = 0 # size of the gradient which should be sketched
+        sketchMask = [] # controls which parameters should be sketched
+        
         for p in params:
             if p.requires_grad:
-                grad_shape += p.numel()
+                size = torch.numel(p)
+                grad_shape += size
+                if p.do_sketching:
+                    sketchMask.append(torch.ones(size))
+                    sketch_shape += size
+                else:
+                    sketchMask.append(torch.zeros(size))
 
+        sketchMask = torch.cat(sketchMask).bool().to(device) 
+        assert sketchMask.numel() == grad_shape
+        assert sketchMask.sum() == sketch_shape
+        self.sketchMask = sketchMask
         self.grad_shape = grad_shape
+        self.sketch_shape = sketch_shape
+
         self.optimizer = optimizer
+        
         self.device = device
+        self.c = c
+        self.r = r
+        self.k = k
+        self.momentum = momentum
+        self.lr = lr
+        self.sketch = CSVec(d=sketch_shape, c=c, r=r, device=device)
         self.u = torch.zeros(grad_shape, device=device)
         self.v = torch.zeros(grad_shape, device=device)
-        self.momentum = momentum
-        self.sketch = CSVec(d=grad_shape, c=c, r=r, device=device)
-        self.k = k
 
     # creates the flattened gradient vector for later encoding in a sketch.
     def _flattened_gradient(self):
@@ -56,10 +82,16 @@ class SketchState:
 
         self.v.add_(self.u)
 
-        self.sketch.zero()
-        self.sketch.accumulateVec(self.v)
+        v_masked = self.v[self.sketchMask]
 
-        return self.sketch.table.clone() 
+        self.sketch.zero()
+        self.sketch.accumulateVec(v_masked)
+        table = self.sketch.table.clone() 
+
+        uncompressed = self.v[~self.sketchMask]
+        assert uncompressed.size() == torch.Size([self.grad_shape - self.sketch_shape])
+
+        return torch.cat([table.view(-1), uncompressed])
 
     def _apply_gradient(self, gradient):
         # set .grad fields with unsketched gradient vector.
@@ -73,14 +105,28 @@ class SketchState:
         assert i == self.grad_shape, "gradient size mismatch"
 
     # decodes sketch into gradient vector, then applies it to model.
-    def decode(self, sketch_table):
+    def decode(self, payload):
+        table_len = self.r * self.c
+        sketch_table = payload[:table_len].view(self.r, self.c)
+        uncompressed = payload[table_len:]
+
         self.sketch.zero()
         self.sketch.table = sketch_table
 
         # unsketch payload
-        gradient = self.sketch.unSketch(k=self.k)
+        gradient = torch.zeros(self.grad_shape, device=self.device)
+        unsketched = self.sketch.unSketch(k=self.k)
+        gradient[self.sketchMask] = unsketched
+
         self.u[gradient.nonzero()] = 0
         self.v[gradient.nonzero()] = 0
+
+        # deal with non-compressed gradients (bias)
+        assert uncompressed.size() == torch.Size([self.grad_shape - self.sketch_shape])
+        gradient[~self.sketchMask] = uncompressed
+        self.v[~self.sketchMask] = 0
+
+        gradient.mul_(self.lr)
 
         self._apply_gradient(gradient)
 

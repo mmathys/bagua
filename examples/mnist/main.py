@@ -41,7 +41,6 @@ class Net(nn.Module):
 def train(args, model, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-
         data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
         output = model(data)
@@ -222,6 +221,10 @@ def main():
 
     model = Net().cuda()
     #breakpoint()
+    for m in model.modules():
+        if hasattr(m, "bias") and m.bias is not None:
+            m.bias.do_sketching = False
+
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     if args.algorithm == "gradient_allreduce":
