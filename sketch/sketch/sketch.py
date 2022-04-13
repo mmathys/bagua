@@ -52,6 +52,7 @@ class SketchState:
         self.sketch = CSVec(d=sketch_shape, c=c, r=r, device=device)
         self.u = torch.zeros(grad_shape, device=device)
         self.v = torch.zeros(grad_shape, device=device)
+        self.logged_bw_savings = False
 
     # creates the flattened gradient vector for later encoding in a sketch.
     def _flattened_gradient(self):
@@ -84,7 +85,13 @@ class SketchState:
         uncompressed = self.v[~self.sketchMask]
         assert uncompressed.size() == torch.Size([self.grad_shape - self.sketch_shape])
 
-        return torch.cat([table.view(-1), uncompressed])
+        encoded = torch.cat([table.view(-1), uncompressed])
+        
+        if not self.logged_bw_savings:
+            print(f"Bandwidth savings: from {len(gradient)} to {len(encoded)} ({(len(gradient) / len(encoded)):.2f}x)")
+            self.logged_bw_savings = True
+
+        return encoded
 
     # apply gradient to .grad fields
     def _apply_gradient(self, gradient):
