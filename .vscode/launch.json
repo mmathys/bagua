@@ -20,6 +20,21 @@
             ],
         },
         {
+            "name": "Benchmark",
+            "type": "python",
+            "request": "launch",
+            "module": "bagua.distributed.launch",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/examples/benchmark",
+            "console": "integratedTerminal",
+            "args": [
+                "--nproc_per_node=1",
+                "synthetic_benchmark.py",
+                "--algorithm",
+                "sketch"
+            ],
+        },
+        {
             "name": "simple example",
             "type": "python",
             "request": "launch",

@@ -86,6 +86,7 @@ class SketchState:
 
         return torch.cat([table.view(-1), uncompressed])
 
+    # apply gradient to .grad fields
     def _apply_gradient(self, gradient):
         # set .grad fields with unsketched gradient vector.
         i = 0
@@ -174,7 +175,6 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         ), "tensor names should be unique"
         return tensors
 
-    # Q: what does that do? *it's required*
     def init_backward_hook(self, bagua_ddp: BaguaDistributedDataParallel):
         def hook(parameter_name, parameter):
             if parameter_name in self._communication_tensor_names:
@@ -182,7 +182,6 @@ class SketchAlgorithmImpl(AlgorithmImpl):
 
         return hook
 
-    # Q: what does that do? *it's NOT required*
     def init_post_backward_hook(self, bagua_ddp: BaguaDistributedDataParallel):
         def hook():
             bagua_ddp._bagua_backend.wait_pending_comm_ops()
@@ -195,6 +194,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
     ) -> List[BaguaBucket]:
         if DEBUG:
             print("----SketchAlgorithmImpl tensors_to_buckets batch_idx {} in rank: {}".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device))
+        
         bagua_buckets = []
         for idx, bucket in enumerate(tensors):
             bagua_bucket = BaguaBucket(
@@ -204,6 +204,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
                 alignment=self.process_group.get_global_communicator().nranks(),
             )
             bagua_buckets.append(bagua_bucket)
+        
         return bagua_buckets
 
     def init_operations(
@@ -214,7 +215,6 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         bucket.clear_ops()
 
         def log(*args):
-            if not DEBUG: return
             print("----log batch_idx {} in {}: grad---{}.".format(self.optimizer.param_groups[0]["params"][-1].stepid, self.optimizer.param_groups[0]["params"][-1].device, self.optimizer.param_groups[0]["params"][-1].grad[0:10]))
             for tensor in self.optimizer.param_groups[0]["params"]:
                 if tensor.is_bagua_tensor():
@@ -233,10 +233,10 @@ class SketchAlgorithmImpl(AlgorithmImpl):
 
             encoded_tensor = bucket.tensors[0].bagua_getter_closure().detach()
             self.state.decode(encoded_tensor)
-
-        bucket.append_python_op(log, group=self.process_group)
+        
+        if DEBUG: bucket.append_python_op(log, group=self.process_group)
         bucket.append_python_op(sketch, group=self.process_group)
-        bucket.append_python_op(log, group=self.process_group)
+        if DEBUG: bucket.append_python_op(log, group=self.process_group)
         bucket.append_centralized_synchronous_op(
             hierarchical=self.hierarchical,
             average=self.average,
