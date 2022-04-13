@@ -20,3 +20,4 @@ dbg.h
 examples/data/
 /_build/
 /venv/
+*.egg-info
