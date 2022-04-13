@@ -134,7 +134,8 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         c=60,
         r=5,
         k=60,
-        lr=0.01
+        lr=0.01,
+        momentum=0.0
     ):
         super(SketchAlgorithmImpl, self).__init__(process_group)
         self.optimizer = optimizer
@@ -144,8 +145,9 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         self.r = r
         self.k = k
         self.lr = lr
+        self.momentum = momentum
         device = self.optimizer.param_groups[0]["params"][0].device
-        self.state = SketchState(optimizer, device=device, c=c, r=r, k=k, lr=lr)
+        self.state = SketchState(optimizer, device=device, c=c, r=r, k=k, lr=lr, momentum=momentum)
 
     def init_tensors(
         self, bagua_ddp: BaguaDistributedDataParallel
@@ -245,7 +247,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         bucket.append_python_op(unsketch)
 
 class SketchAlgorithm(Algorithm):
-    def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = True, c=60, r=5, k=60, lr=0.01):
+    def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = True, c=60, r=5, k=60, lr=0.01, momentum=0.0):
         self.optimizer = optimizer
         self.hierarchical = hierarchical
         self.average = average
@@ -253,6 +255,7 @@ class SketchAlgorithm(Algorithm):
         self.r = r
         self.k = k
         self.lr = lr
+        self.momentum = momentum
 
     def reify(self, process_group: BaguaProcessGroup) -> SketchAlgorithmImpl:
         return SketchAlgorithmImpl(
@@ -263,5 +266,6 @@ class SketchAlgorithm(Algorithm):
             c=self.c,
             r=self.r,
             k=self.k,
-            lr=self.lr
+            lr=self.lr,
+            momentum=self.momentum
         )
