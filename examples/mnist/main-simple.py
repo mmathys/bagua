@@ -4,6 +4,10 @@ from sketch import SketchAlgorithm
 import torch.nn.functional as F
 import logging
 import bagua.torch_api as bagua
+from bagua.torch_api.algorithms import gradient_allreduce
+
+USE_SKETCH = True
+sketch_biases = False
 
 def main():
     torch.manual_seed(42)
@@ -15,11 +19,15 @@ def main():
 
     for m in model.modules():
         if hasattr(m, "bias") and m.bias is not None:
-            m.bias.do_sketching = False
+            m.bias.do_sketching = sketch_biases
 
+    if USE_SKETCH:
+        optimizer = optim.SGD(model.parameters(), lr=1)
+        algorithm = SketchAlgorithm(optimizer)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        algorithm = gradient_allreduce.GradientAllReduceAlgorithm()
 
-    optimizer = optim.SGD(model.parameters(), lr=1)
-    algorithm = SketchAlgorithm(optimizer)
 
     model = model.with_bagua(
         [optimizer],

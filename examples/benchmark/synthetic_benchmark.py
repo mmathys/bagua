@@ -154,6 +154,10 @@ elif args.algorithm == "async":
         sync_interval_ms=args.async_sync_interval,
         warmup_steps=args.async_warmup_steps,
     )
+elif args.algorithm == "sketch":
+    from sketch_tmp import SketchAlgorithm
+    optimizer = optim.SGD(model.parameters(), lr=1)
+    algorithm = SketchAlgorithm(optimizer, c=60, r=5, k=60, lr=0.001)
 else:
     raise NotImplementedError
 
