@@ -254,7 +254,7 @@ class SketchAlgorithmImpl(AlgorithmImpl):
         bucket.append_python_op(unsketch)
 
 class SketchAlgorithm(Algorithm):
-    def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = True, c=60, r=5, k=60, lr=0.01, momentum=0.0):
+    def __init__(self, optimizer: Optimizer, hierarchical: bool = False, average: bool = False, c=60, r=5, k=60, lr=0.01, momentum=0.0):
         self.optimizer = optimizer
         self.hierarchical = hierarchical
         self.average = average
