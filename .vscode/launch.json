@@ -20,7 +20,7 @@
             ],
         },
         {
-            "name": "Benchmark",
+            "name": "Sketch Benchmark",
             "type": "python",
             "request": "launch",
             "module": "bagua.distributed.launch",
@@ -31,7 +31,30 @@
                 "--nproc_per_node=1",
                 "synthetic_benchmark.py",
                 "--algorithm",
-                "sketch"
+                "sketch",
+                "2>&1",
+                "|", 
+                "tee",
+                "${workspaceFolder}/bench-sketch.log"
+            ],
+        },
+        {
+            "name": "Allreduce Benchmark",
+            "type": "python",
+            "request": "launch",
+            "module": "bagua.distributed.launch",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/examples/benchmark",
+            "console": "integratedTerminal",
+            "args": [
+                "--nproc_per_node=1",
+                "synthetic_benchmark.py",
+                "--algorithm",
+                "allreduce",
+                "2>&1",
+                "|", 
+                "tee",
+                "${workspaceFolder}/bench-allreduce.log"
             ],
         },
         {
