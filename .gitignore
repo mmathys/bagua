@@ -21,3 +21,4 @@ examples/data/
 /_build/
 /venv/
 *.egg-info
+*.svg
