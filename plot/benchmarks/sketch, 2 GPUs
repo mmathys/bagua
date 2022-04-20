@@ -1,0 +1,60 @@
+WARNING:root:Bagua cannot detect bundled NCCL library, Bagua will try to use system NCCL instead. If you encounter any error, please run `import bagua_core; bagua_core.install_deps()` or the `bagua_install_deps.py` script to install bundled libraries.
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+WARNING:root:Bagua cannot detect bundled NCCL library, Bagua will try to use system NCCL instead. If you encounter any error, please run `import bagua_core; bagua_core.install_deps()` or the `bagua_install_deps.py` script to install bundled libraries.
+WARNING:root:Bagua cannot detect bundled NCCL library, Bagua will try to use system NCCL instead. If you encounter any error, please run `import bagua_core; bagua_core.install_deps()` or the `bagua_install_deps.py` script to install bundled libraries.
+
+PYDEV DEBUGGER WARNING:
+sys.settrace() should not be used when the debugger is being used.
+This may cause the debugger to stop working correctly.
+If this is needed, please check: 
+http://pydev.blogspot.com/2007/06/why-cant-pydev-debugger-work-with.html
+to see how to restore the debug tracing back correctly.
+Call Location:
+  File "/home/ubuntu/.local/lib/python3.8/site-packages/gevent/threadpool.py", line 157, in _before_run_task
+    _sys.settrace(_get_thread_trace())
+
+
+PYDEV DEBUGGER WARNING:
+sys.settrace() should not be used when the debugger is being used.
+This may cause the debugger to stop working correctly.
+If this is needed, please check: 
+http://pydev.blogspot.com/2007/06/why-cant-pydev-debugger-work-with.html
+to see how to restore the debug tracing back correctly.
+Call Location:
+  File "/home/ubuntu/.local/lib/python3.8/site-packages/gevent/threadpool.py", line 162, in _after_run_task
+    _sys.settrace(None)
+
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 0
+INFO:torch.distributed.distributed_c10d:Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 2 nodes.
+INFO:root:Model: resnet50
+INFO:root:Batch size: 32
+INFO:root:Number of GPUs: 2
+INFO:root:Running warmup...
+Bandwidth savings: from 25557032 to 300 (85190.11x)
+Bandwidth savings: from 25557032 to 300 (85190.11x)
+INFO:root:BatchIdx: 0 TrainLoss: 7.078182
+INFO:root:Running benchmark...
+INFO:root:BatchIdx: 10 TrainLoss: 6.481041
+INFO:root:Iter #0: 108.3 img/sec GPU
+INFO:root:BatchIdx: 20 TrainLoss: 6.078959
+INFO:root:Iter #1: 106.8 img/sec GPU
+INFO:root:BatchIdx: 30 TrainLoss: 5.546234
+INFO:root:Iter #2: 106.6 img/sec GPU
+INFO:root:BatchIdx: 40 TrainLoss: 5.198510
+INFO:root:Iter #3: 106.8 img/sec GPU
+INFO:root:BatchIdx: 50 TrainLoss: 5.030927
+INFO:root:Iter #4: 106.2 img/sec GPU
+INFO:root:BatchIdx: 60 TrainLoss: 4.712876
+INFO:root:Iter #5: 105.7 img/sec GPU
+INFO:root:BatchIdx: 70 TrainLoss: 4.102131
+INFO:root:Iter #6: 105.1 img/sec GPU
+INFO:root:BatchIdx: 80 TrainLoss: 4.350796
+INFO:root:Iter #7: 105.3 img/sec GPU
+INFO:root:BatchIdx: 90 TrainLoss: 6.105427
+INFO:root:Iter #8: 104.8 img/sec GPU
+INFO:root:BatchIdx: 100 TrainLoss: 5.485311
+INFO:root:Iter #9: 104.6 img/sec GPU
+INFO:root:Img/sec per GPU: 53.0 +-1.1
+INFO:root:Total img/sec on 2 GPU(s): 106.0 +-2.1
