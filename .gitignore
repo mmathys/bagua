@@ -22,3 +22,4 @@ examples/data/
 /venv/
 *.egg-info
 *.svg
+.DS_Store
