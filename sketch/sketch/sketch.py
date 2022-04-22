@@ -99,7 +99,8 @@ class SketchState:
         i = 0
         for p in self.optimizer.param_groups[0]["params"]:
             if p.requires_grad:
-                assert hasattr(p, "grad"), "gradient field must exist on param"
+                if not hasattr(p, "sketch_grad"):
+                    p.sketch_grad = torch.zeros_like(p.grad)
                 p.grad.set_(gradient[i:i+p.numel()].reshape(p.shape))
                 i += p.numel()
         

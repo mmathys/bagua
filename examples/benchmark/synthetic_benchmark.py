@@ -157,7 +157,7 @@ elif args.algorithm == "async":
 elif args.algorithm == "sketch":
     from sketch import SketchAlgorithm
     optimizer = optim.SGD(model.parameters(), lr=1)
-    algorithm = SketchAlgorithm(optimizer, c=60, r=5, k=60, lr=0.001)
+    algorithm = SketchAlgorithm(optimizer, c=100, r=10, k=100, lr=0.001)
 else:
     raise NotImplementedError
 
@@ -190,6 +190,15 @@ def benchmark_step():
         return
 
     loss.backward()
+
+    #breakpoint()
+    if args.algorithm == "sketch":
+        for param in optimizer.param_groups[0]["params"]:
+            if hasattr(param, "grad"):
+                assert hasattr(param, "sketch_grad")
+                param.grad.set_(param.sketch_grad)
+                #param.grad.zero_()
+
     optimizer.step()
     if batch_idx % args.log_interval == 0:
         logging.info(
