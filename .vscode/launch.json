@@ -30,6 +30,9 @@
             "args": [
                 "--nproc_per_node=1",
                 "synthetic_benchmark.py",
+                "--deterministic",
+                "--num-iters",
+                "20",
                 "--algorithm",
                 "sketch",
                 "2>&1",
@@ -39,7 +42,7 @@
             ],
         },
         {
-            "name": "Allreduce Benchmark",
+            "name": "QAdam Benchmark",
             "type": "python",
             "request": "launch",
             "module": "bagua.distributed.launch",
@@ -49,12 +52,15 @@
             "args": [
                 "--nproc_per_node=1",
                 "synthetic_benchmark.py",
+                "--deterministic",
+                "--num-iters",
+                "20",
                 "--algorithm",
-                "gradient_allreduce",
+                "qadam",
                 "2>&1",
                 "|", 
                 "tee",
-                "${workspaceFolder}/bench-allreduce.log"
+                "${workspaceFolder}/bench-qadam.log"
             ],
         },
         {

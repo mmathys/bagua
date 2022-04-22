@@ -122,7 +122,7 @@ if args.cuda:
     # Move model to GPU.
     model.cuda()
 
-optimizer = optim.SGD(model.parameters(), lr=0.01 * bagua.get_world_size())
+optimizer = optim.SGD(model.parameters(), lr=0.1 * bagua.get_world_size())
 
 if args.algorithm == "gradient_allreduce":
     from bagua.torch_api.algorithms import gradient_allreduce

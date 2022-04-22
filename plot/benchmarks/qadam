@@ -28,28 +28,48 @@ INFO:root:Model: resnet50
 INFO:root:Batch size: 32
 INFO:root:Number of GPUs: 1
 INFO:root:Running warmup...
-Bandwidth savings: from 25557032 to 1000 (25557.03x)
-INFO:root:BatchIdx: 0 TrainLoss: 6.995137
+INFO:root:BatchIdx: 0 TrainLoss: 6.914067
 INFO:root:Running benchmark...
-INFO:root:BatchIdx: 10 TrainLoss: 5.322886
-INFO:root:Iter #0: 46.8 img/sec GPU
-INFO:root:BatchIdx: 20 TrainLoss: 3.273738
-INFO:root:Iter #1: 46.9 img/sec GPU
-INFO:root:BatchIdx: 30 TrainLoss: 1.502560
-INFO:root:Iter #2: 46.8 img/sec GPU
-INFO:root:BatchIdx: 40 TrainLoss: 1.008974
-INFO:root:Iter #3: 46.7 img/sec GPU
-INFO:root:BatchIdx: 50 TrainLoss: 0.463426
-INFO:root:Iter #4: 46.6 img/sec GPU
-INFO:root:BatchIdx: 60 TrainLoss: 2.868699
-INFO:root:Iter #5: 46.6 img/sec GPU
-INFO:root:BatchIdx: 70 TrainLoss: 1.441000
-INFO:root:Iter #6: 46.7 img/sec GPU
-INFO:root:BatchIdx: 80 TrainLoss: 0.223481
-INFO:root:Iter #7: 46.5 img/sec GPU
-INFO:root:BatchIdx: 90 TrainLoss: 0.041559
-INFO:root:Iter #8: 46.4 img/sec GPU
-INFO:root:BatchIdx: 100 TrainLoss: 1.527204
-INFO:root:Iter #9: 46.6 img/sec GPU
-INFO:root:Img/sec per GPU: 46.6 +-0.3
-INFO:root:Total img/sec on 1 GPU(s): 46.6 +-0.3
+INFO:root:BatchIdx: 10 TrainLoss: 3.598126
+INFO:root:Iter #0: 90.7 img/sec GPU
+INFO:root:BatchIdx: 20 TrainLoss: 2.977381
+INFO:root:Iter #1: 90.3 img/sec GPU
+INFO:root:BatchIdx: 30 TrainLoss: 2.348433
+INFO:root:Iter #2: 90.2 img/sec GPU
+INFO:root:BatchIdx: 40 TrainLoss: 2.180686
+INFO:root:Iter #3: 89.8 img/sec GPU
+INFO:root:BatchIdx: 50 TrainLoss: 1.211399
+INFO:root:Iter #4: 89.6 img/sec GPU
+INFO:root:BatchIdx: 60 TrainLoss: 0.555931
+INFO:root:Iter #5: 89.2 img/sec GPU
+INFO:root:BatchIdx: 70 TrainLoss: 0.202021
+INFO:root:Iter #6: 88.8 img/sec GPU
+INFO:root:BatchIdx: 80 TrainLoss: 0.050156
+INFO:root:Iter #7: 88.6 img/sec GPU
+INFO:root:BatchIdx: 90 TrainLoss: 0.004874
+INFO:root:Iter #8: 88.6 img/sec GPU
+QAdam starts to compress from step 100
+INFO:root:BatchIdx: 100 TrainLoss: 0.001234
+INFO:root:Iter #9: 81.5 img/sec GPU
+INFO:root:BatchIdx: 110 TrainLoss: 0.000713
+INFO:root:Iter #10: 87.6 img/sec GPU
+INFO:root:BatchIdx: 120 TrainLoss: 0.000518
+INFO:root:Iter #11: 87.4 img/sec GPU
+INFO:root:BatchIdx: 130 TrainLoss: 0.000413
+INFO:root:Iter #12: 87.4 img/sec GPU
+INFO:root:BatchIdx: 140 TrainLoss: 0.000350
+INFO:root:Iter #13: 87.5 img/sec GPU
+INFO:root:BatchIdx: 150 TrainLoss: 0.000309
+INFO:root:Iter #14: 87.4 img/sec GPU
+INFO:root:BatchIdx: 160 TrainLoss: 0.000279
+INFO:root:Iter #15: 87.5 img/sec GPU
+INFO:root:BatchIdx: 170 TrainLoss: 0.000256
+INFO:root:Iter #16: 87.2 img/sec GPU
+INFO:root:BatchIdx: 180 TrainLoss: 0.000237
+INFO:root:Iter #17: 87.6 img/sec GPU
+INFO:root:BatchIdx: 190 TrainLoss: 0.000221
+INFO:root:Iter #18: 87.6 img/sec GPU
+INFO:root:BatchIdx: 200 TrainLoss: 0.000207
+INFO:root:Iter #19: 87.7 img/sec GPU
+INFO:root:Img/sec per GPU: 88.1 +-3.7
+INFO:root:Total img/sec on 1 GPU(s): 88.1 +-3.7
