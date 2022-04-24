@@ -1,0 +1,75 @@
+WARNING:root:Bagua cannot detect bundled NCCL library, Bagua will try to use system NCCL instead. If you encounter any error, please run `import bagua_core; bagua_core.install_deps()` or the `bagua_install_deps.py` script to install bundled libraries.
+WARNING:root:Bagua cannot detect bundled NCCL library, Bagua will try to use system NCCL instead. If you encounter any error, please run `import bagua_core; bagua_core.install_deps()` or the `bagua_install_deps.py` script to install bundled libraries.
+
+PYDEV DEBUGGER WARNING:
+sys.settrace() should not be used when the debugger is being used.
+This may cause the debugger to stop working correctly.
+If this is needed, please check: 
+http://pydev.blogspot.com/2007/06/why-cant-pydev-debugger-work-with.html
+to see how to restore the debug tracing back correctly.
+Call Location:
+  File "/home/ubuntu/.local/lib/python3.8/site-packages/gevent/threadpool.py", line 157, in _before_run_task
+    _sys.settrace(_get_thread_trace())
+
+
+PYDEV DEBUGGER WARNING:
+sys.settrace() should not be used when the debugger is being used.
+This may cause the debugger to stop working correctly.
+If this is needed, please check: 
+http://pydev.blogspot.com/2007/06/why-cant-pydev-debugger-work-with.html
+to see how to restore the debug tracing back correctly.
+Call Location:
+  File "/home/ubuntu/.local/lib/python3.8/site-packages/gevent/threadpool.py", line 162, in _after_run_task
+    _sys.settrace(None)
+
+INFO:torch.distributed.distributed_c10d:Added key: store_based_barrier_key:1 to store for rank: 0
+INFO:torch.distributed.distributed_c10d:Rank 0: Completed store-based barrier for key:store_based_barrier_key:1 with 1 nodes.
+INFO:root:Model: resnet50
+INFO:root:Batch size: 32
+INFO:root:Number of GPUs: 1
+INFO:root:Running warmup...
+Bandwidth savings: from 25557032 to 100 (255570.32x)
+INFO:root:BatchIdx: 0 TrainLoss: 6.914067
+INFO:root:Running benchmark...
+INFO:root:BatchIdx: 10 TrainLoss: 5.421512
+INFO:root:Iter #0: 44.4 img/sec GPU
+INFO:root:BatchIdx: 20 TrainLoss: 3.398079
+INFO:root:Iter #1: 44.2 img/sec GPU
+INFO:root:BatchIdx: 30 TrainLoss: 3.617035
+INFO:root:Iter #2: 43.9 img/sec GPU
+INFO:root:BatchIdx: 40 TrainLoss: 3.361996
+INFO:root:Iter #3: 43.8 img/sec GPU
+INFO:root:BatchIdx: 50 TrainLoss: 2.977959
+INFO:root:Iter #4: 43.8 img/sec GPU
+INFO:root:BatchIdx: 60 TrainLoss: 2.330331
+INFO:root:Iter #5: 43.7 img/sec GPU
+INFO:root:BatchIdx: 70 TrainLoss: 1.929022
+INFO:root:Iter #6: 43.4 img/sec GPU
+INFO:root:BatchIdx: 80 TrainLoss: 1.572213
+INFO:root:Iter #7: 43.4 img/sec GPU
+INFO:root:BatchIdx: 90 TrainLoss: 2.317435
+INFO:root:Iter #8: 43.3 img/sec GPU
+INFO:root:BatchIdx: 100 TrainLoss: 0.992843
+INFO:root:Iter #9: 43.3 img/sec GPU
+INFO:root:BatchIdx: 110 TrainLoss: 0.697464
+INFO:root:Iter #10: 43.1 img/sec GPU
+INFO:root:BatchIdx: 120 TrainLoss: 0.604836
+INFO:root:Iter #11: 43.1 img/sec GPU
+INFO:root:BatchIdx: 130 TrainLoss: 0.536245
+INFO:root:Iter #12: 42.7 img/sec GPU
+INFO:root:BatchIdx: 140 TrainLoss: 0.467967
+INFO:root:Iter #13: 42.6 img/sec GPU
+INFO:root:BatchIdx: 150 TrainLoss: 0.430193
+INFO:root:Iter #14: 42.7 img/sec GPU
+INFO:root:BatchIdx: 160 TrainLoss: 0.396845
+INFO:root:Iter #15: 42.6 img/sec GPU
+INFO:root:BatchIdx: 170 TrainLoss: 0.366078
+INFO:root:Iter #16: 42.6 img/sec GPU
+INFO:root:BatchIdx: 180 TrainLoss: 0.354238
+INFO:root:Iter #17: 42.6 img/sec GPU
+INFO:root:BatchIdx: 190 TrainLoss: 0.274702
+INFO:root:Iter #18: 42.6 img/sec GPU
+INFO:root:BatchIdx: 200 TrainLoss: 0.208959
+INFO:root:Iter #19: 42.6 img/sec GPU
+INFO:root:Img/sec per GPU: 43.2 +-1.1
+INFO:root:Total img/sec on 1 GPU(s): 43.2 +-1.1
