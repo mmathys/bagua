@@ -46,6 +46,14 @@ def train(args, model, train_loader, optimizer, epoch):
         output = model(data)
         loss = F.nll_loss(output, target)
         loss.backward()
+
+        if args.algorithm == "sketch":
+            for param in optimizer.param_groups[0]["params"]:
+                if hasattr(param, "grad"):
+                    assert hasattr(param, "sketch_grad")
+                    param.grad.set_(param.sketch_grad)
+                    #param.grad.zero_()
+
         if args.fuse_optimizer:
             optimizer.fuse_step()
         else:
@@ -257,10 +265,10 @@ def main():
             sync_interval_ms=args.async_sync_interval,
         )
     elif args.algorithm == "sketch":
-        from sketch.sketch import SketchAlgorithm
-
-        optimizer = optim.SGD(model.parameters(), lr=1)
-        algorithm = SketchAlgorithm(optimizer)
+        from sketch import SketchAlgorithm
+        # NOTE: may switch to Adadelta optimizer and try it out.
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        algorithm = SketchAlgorithm(optimizer, c=100, r=10, k=100, lr=0.001)
     else:
         raise NotImplementedError
 
