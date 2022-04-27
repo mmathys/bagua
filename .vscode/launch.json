@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "MNIST",
+            "name": "MNIST Allreduce",
             "type": "python",
             "request": "launch",
             "module": "bagua.distributed.launch",
@@ -16,7 +16,30 @@
                 "--nproc_per_node=1",
                 "main.py",
                 "--algorithm",
-                "sketch"
+                "gradient_allreduce",
+                "2>&1",
+                "|", 
+                "tee",
+                "${workspaceFolder}/mnist-allreduce.log"
+            ],
+        },
+        {
+            "name": "MNIST Sketch",
+            "type": "python",
+            "request": "launch",
+            "module": "bagua.distributed.launch",
+            "justMyCode": true,
+            "cwd": "${workspaceFolder}/examples/mnist",
+            "console": "integratedTerminal",
+            "args": [
+                "--nproc_per_node=1",
+                "main.py",
+                "--algorithm",
+                "sketch",
+                "2>&1",
+                "|", 
+                "tee",
+                "${workspaceFolder}/mnist-sketch.log"
             ],
         },
         {
